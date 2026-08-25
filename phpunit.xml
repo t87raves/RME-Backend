@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Modules">
+            <directory>Modules/*/tests/Feature</directory>
+            <directory>Modules/*/tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+            <directory>Modules/*/app</directory>
+        </include>
+    </source>
+    <php>
+        <!--
+            paratest workers spawn fresh PHP processes that don't inherit a parent `-d
+            memory_limit=...` CLI override - each worker boots the app (144+ module service
+            providers) under the plain php.ini default of 128M, which isn't enough once the
+            module count grows past ~140. <ini> here IS applied per-worker since each worker
+            runs PHPUnit itself, which reads this file. Bumped generously so this doesn't
+            need revisiting again as the catalog grows toward 687 modules.
+        -->
+        <ini name="memory_limit" value="1G"/>
+        <!--
+            Laravel's Application::inferBasePath() derives the base path from Composer
+            ClassLoader::getRegisteredLoaders() keys. vendor/ here is a symlink shared across
+            multiple git worktrees (to avoid N copies of installed deps) - PHP resolves that
+            symlink to its realpath when Composer registers the loader, so inference silently
+            picks whichever repo checkout vendor physically lives under instead of this
+            worktree. That's invisible for modules that also happen to exist in that other
+            checkout, but any module that exists ONLY in this worktree becomes untestable
+            (its migrations/routes never load). Pinning APP_BASE_PATH bypasses the inference.
+        -->
+        <env name="APP_BASE_PATH" value="G:\New folder\simgos-backend"/>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>
